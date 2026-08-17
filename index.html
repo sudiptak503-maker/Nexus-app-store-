@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus Store</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <style>
+        /* --- New Modern Color Theme --- */
+        :root { 
+            --primary-color: #2563EB; /* Royal Blue */
+            --accent-color: #06B6D4; /* Cyan */
+            --bg-color: #F3F4F6; /* Light Gray Background */
+            --card-bg: #ffffff;
+            --text-dark: #1F2937; 
+            --text-light: #6B7280; 
+        }
+        body { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; background-color: var(--bg-color); color: var(--text-dark); user-select: none; overflow-x: hidden; }
+        
+        /* --- Splash Screen Animation CSS --- */
+        #splash-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: #ffffff;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 9999; transition: opacity 0.6s ease, visibility 0.6s ease;
+        }
+        .nexus-logo-svg {
+            width: 80px; height: 80px; color: var(--primary-color);
+            margin-bottom: 15px; animation: bounceIn 1.2s cubic-bezier(0.28, 0.84, 0.42, 1);
+        }
+        #splash-screen h1 {
+            color: var(--primary-color); font-size: 38px; font-weight: 900; margin: 0; letter-spacing: 1px;
+            animation: fadeUp 1s ease 0.3s both;
+        }
+        @keyframes bounceIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            50% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes fadeUp {
+            0% { transform: translateY(20px); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
+        }
+        .splash-fade-out { opacity: 0; visibility: hidden; }
+
+        /* --- Header --- */
+        header { 
+            background-color: #ffffff; padding: 15px 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); 
+            position: sticky; top: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; 
+        }
+        .header-logo { display: flex; align-items: center; gap: 8px; }
+        .header-logo svg { width: 28px; height: 28px; color: var(--primary-color); }
+        .header-logo h1 { margin: 0; font-size: 24px; font-weight: 800; color: var(--primary-color); letter-spacing: 0.5px; }
+        
+        .content { padding: 15px; padding-bottom: 80px; }
+        .tab-pane { display: none; animation: fadeIn 0.3s ease; }
+        .tab-pane.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* --- App Cards --- */
+        .app-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 10px; }
+        .app-card { background: var(--card-bg); padding: 12px 8px; border-radius: 12px; box-shadow: 0 4px 10px rgba(37,99,235,0.08); text-align: center; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; border: 1px solid transparent; }
+        .app-card:active { transform: scale(0.95); border-color: var(--accent-color); }
+        .app-icon { width: 62px; height: 62px; border-radius: 14px; margin: 0 auto 8px; background-color: #e9ecef; object-fit: cover; box-shadow: 0 2px 5px rgba(0,0,0,0.08); display: block; }
+        .app-name { font-size: 13px; font-weight: 700; color: var(--text-dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .app-size { font-size: 11px; color: var(--text-light); margin-top: 3px; }
+
+        .search-box { width: 100%; padding: 14px 18px; border: 1px solid #e5e7eb; border-radius: 10px; font-size: 16px; margin-bottom: 15px; box-sizing: border-box; outline: none; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
+        .search-box:focus { border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+        #search-results { list-style: none; padding: 0; margin: 0; }
+        #search-results li { padding: 15px; background: #fff; border-bottom: 1px solid #f3f4f6; font-size: 15px; cursor: pointer; display: flex; align-items: center; border-radius: 8px; margin-bottom: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);}
+
+        .coming-soon { text-align: center; padding: 60px 20px; color: var(--text-light); }
+        .coming-soon i { font-size: 50px; margin-bottom: 15px; color: #d1d5db; }
+
+        /* --- Buffering / Loading Overlay --- */
+        #app-transition-loader {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.85); backdrop-filter: blur(4px);
+            z-index: 600; display: flex; flex-direction: column; justify-content: center; align-items: center;
+            opacity: 0; visibility: hidden; transition: opacity 0.3s ease;
+        }
+        #app-transition-loader.active { opacity: 1; visibility: visible; }
+        .spinner-large {
+            border: 4px solid rgba(37, 99, 235, 0.2); border-top: 4px solid var(--primary-color);
+            border-radius: 50%; width: 45px; height: 45px; animation: spin 0.8s linear infinite;
+        }
+
+        /* --- App Details Page --- */
+        #app-details-page { position: fixed; top: 0; left: 100%; width: 100%; height: 100%; background: #fff; z-index: 300; transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1); overflow-y: auto; padding-bottom: 80px; }
+        #app-details-page.show { left: 0; }
+        .details-header { padding: 15px 20px; display: flex; gap: 15px; align-items: center; position: sticky; top: 0; background: rgba(255,255,255,0.95); backdrop-filter: blur(5px); box-shadow: 0 1px 5px rgba(0,0,0,0.05); z-index: 10;}
+        .back-btn { font-size: 20px; color: var(--text-dark); cursor: pointer; padding: 5px; }
+        .details-top { padding: 25px 20px; display: flex; gap: 20px; align-items: center; }
+        .details-icon { width: 85px; height: 85px; border-radius: 18px; object-fit: cover; box-shadow: 0 6px 15px rgba(0,0,0,0.1); background-color: #eee; }
+        .details-title h2 { margin: 0 0 6px 0; font-size: 22px; color: var(--text-dark); }
+        .details-title p { margin: 0; color: var(--primary-color); font-weight: 600; font-size: 14px; }
+        .stats-row { display: flex; justify-content: space-around; padding: 15px 0; border-top: 1px solid #f3f4f6; border-bottom: 1px solid #f3f4f6; margin: 0 20px; text-align: center; }
+        .stat-box strong { display: block; font-size: 16px; color: var(--text-dark); }
+        .stat-box span { font-size: 12px; color: var(--text-light); }
+        .download-btn-container { padding: 20px; }
+        .btn-download-main { width: 100%; padding: 15px; background: var(--primary-color); color: #fff; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; box-shadow: 0 6px 15px rgba(37,99,235,0.25); display: flex; align-items: center; justify-content: center; gap: 8px; transition: transform 0.2s; }
+        .btn-download-main:active { transform: scale(0.98); }
+        
+        .review-section { padding: 20px; border-top: 1px solid #f3f4f6; margin-top: 10px; }
+        .star-rating i { font-size: 28px; color: #e5e7eb; cursor: pointer; margin-right: 5px; transition: color 0.2s; }
+        .star-rating i.active { color: #F59E0B; /* Star Yellow */ }
+        .review-card { background: #f9fafb; padding: 14px; border-radius: 10px; margin-bottom: 12px; border-left: 4px solid var(--primary-color); }
+        .review-user { font-size: 12px; font-weight: bold; color: var(--text-dark); margin-bottom: 6px; }
+        .review-text { font-size: 14px; color: var(--text-light); margin: 0; line-height: 1.4;}
+
+        #download-toast { position: fixed; bottom: -100px; left: 50%; transform: translateX(-50%); background: var(--text-dark); color: #fff; padding: 12px 24px; border-radius: 30px; font-weight: 500; font-size: 14px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); transition: bottom 0.4s cubic-bezier(0.4, 0, 0.2, 1); z-index: 400; display: flex; align-items: center; gap: 12px; white-space: nowrap; }
+        #download-toast.show { bottom: 80px; }
+        .spinner { border: 3px solid rgba(255,255,255,0.3); border-top: 3px solid #fff; border-radius: 50%; width: 16px; height: 16px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* --- Auth & Profile --- */
+        .auth-card, .profile-card { background: #fff; padding: 25px; border-radius: 14px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); border-top: 5px solid var(--primary-color); margin: 0 auto; max-width: 400px; }
+        .input-group { margin-bottom: 15px; }
+        .input-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--text-light); }
+        .input-group input, .input-group textarea { width: 100%; padding: 12px 15px; border: 1px solid #e5e7eb; border-radius: 8px; box-sizing: border-box; font-size: 15px; font-family: inherit; transition: border-color 0.2s; }
+        .input-group input:focus, .input-group textarea:focus { border-color: var(--primary-color); outline: none; }
+        
+        .btn { width: 100%; padding: 14px; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; margin-bottom: 12px; transition: 0.2s; }
+        .btn-primary { background: var(--primary-color); color: #fff; }
+        .btn-primary:active { opacity: 0.9; }
+        .btn-google { background: #fff; color: #374151; border: 1px solid #d1d5db; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .btn-outline { background: #fff; border: 1px solid var(--primary-color); color: var(--primary-color); }
+
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(3px); z-index: 500; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; }
+        .modal-content { background: #fff; padding: 25px; border-radius: 16px; width: 100%; max-width: 400px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto; }
+
+        .bottom-nav { position: fixed; bottom: 0; width: 100%; background-color: #ffffff; display: flex; justify-content: space-around; padding: 12px 0; box-shadow: 0 -4px 15px rgba(0,0,0,0.04); z-index: 100; border-top: 1px solid #f3f4f6; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; color: #9ca3af; cursor: pointer; font-size: 11px; font-weight: 600; transition: color 0.2s; }
+        .nav-item i { font-size: 22px; margin-bottom: 5px; }
+        .nav-item.active { color: var(--primary-color); }
+    </style>
+</head>
+<body>
+
+    <!-- SVG Definitions for custom Nexus Icon (Phone with bitten top right) -->
+    <svg style="display: none;" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+            <mask id="nexus-bite">
+                <rect width="24" height="24" fill="white" />
+                <circle cx="21" cy="3" r="6" fill="black" />
+            </mask>
+            <g id="icon-nexus">
+                <rect x="4" y="1" width="16" height="22" rx="3" fill="currentColor" mask="url(#nexus-bite)" />
+                <rect x="9" y="19.5" width="6" height="1.5" rx="0.75" fill="#ffffff" />
+            </g>
+        </defs>
+    </svg>
+
+    <!-- Splash Screen HTML -->
+    <div id="splash-screen">
+        <!-- Using custom SVG Icon -->
+        <svg class="nexus-logo-svg" viewBox="0 0 24 24"><use href="#icon-nexus"></use></svg>
+        <h1>Nexus</h1>
+    </div>
+
+    <!-- Page Transition Loader -->
+    <div id="app-transition-loader">
+        <div class="spinner-large"></div>
+        <p style="margin-top: 15px; color: var(--primary-color); font-weight: 600;">Loading App...</p>
+    </div>
+
+    <header>
+        <div class="header-logo">
+            <svg viewBox="0 0 24 24"><use href="#icon-nexus"></use></svg>
+            <h1>Nexus</h1>
+        </div>
+        <i class="fa-solid fa-bell" style="color: var(--accent-color); font-size: 22px;"></i>
+    </header>
+
+    <div class="content">
+        <!-- Home -->
+        <div id="home" class="tab-pane active"><div class="app-grid" id="main-app-grid"></div></div>
+        
+        <!-- Explore -->
+        <div id="explore" class="tab-pane"><input type="text" id="searchInput" class="search-box" placeholder="Search apps & games..."><ul id="search-results"></ul></div>
+        
+        <!-- Payment -->
+        <div id="payment" class="tab-pane"><div class="coming-soon"><i class="fa-solid fa-wallet"></i><h2>Payment</h2><p>Coming soon.</p></div></div>
+        
+        <!-- Profile -->
+        <div id="profile" class="tab-pane">
+            <div id="auth-section" class="auth-card">
+                <h2 style="text-align: center; margin-top: 0; color: var(--primary-color);">Login or Sign Up</h2>
+                <div class="input-group"><label>Email ID</label><input type="email" id="email" placeholder="example@email.com"></div>
+                <div class="input-group"><label>Password</label><input type="password" id="password" placeholder="••••••••"></div>
+                <button id="loginBtn" class="btn btn-primary">Log In</button>
+                <button id="signupBtn" class="btn btn-outline">Sign Up</button>
+                <div style="text-align: center; margin: 15px 0; color: #9ca3af; font-size: 12px;">OR</div>
+                <button id="googleLoginBtn" class="btn btn-google"><img src="https://www.svgrepo.com/show/475656/google-color.svg" style="width:18px;" alt="Google"> Continue with Google</button>
+            </div>
+            
+            <div id="dashboard-section" class="profile-card" style="display: none;">
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <div style="width: 70px; height: 70px; background: var(--primary-color); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 30px; margin: 0 auto 10px; border: 2px solid var(--accent-color);"><i class="fa-solid fa-user"></i></div>
+                    <h3 id="user-email-display" style="margin: 0; word-break: break-all;">user</h3>
+                    <p style="color: var(--primary-color); font-size: 13px; font-weight: bold; margin: 5px 0;">Developer Account</p>
+                </div>
+                
+                <button id="openUploadBtn" class="btn btn-primary"><i class="fa-solid fa-cloud-arrow-up"></i> Upload New App</button>
+                <button id="logoutBtn" class="btn btn-outline">Log Out</button>
+
+                <h4 style="margin-top: 25px; border-bottom: 1px solid #f3f4f6; padding-bottom: 5px;">My Uploaded Apps</h4>
+                <div id="my-apps-container" style="display: flex; flex-direction: column; gap: 10px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upload Modal -->
+    <div id="uploadModal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 style="margin-top: 0; text-align: center; color: var(--text-dark);">Upload App</h3>
+            <div class="input-group"><label>App Name</label><input type="text" id="appName" placeholder="e.g. Action Pro"></div>
+            <div class="input-group"><label>App Icon Image</label><input type="file" id="appIconFile" accept="image/*" style="padding: 8px;"></div>
+            <div class="input-group"><label>MediaFire Direct Link (APK)</label><input type="url" id="appLink" placeholder="https://www.mediafire.com/file/..."></div>
+            <div style="display: flex; gap: 10px;">
+                <div class="input-group" style="flex: 1;"><label>App Size</label><input type="text" id="appSize" placeholder="e.g. 20 MB"></div>
+                <div class="input-group" style="flex: 1;"><label>Age Limit</label><input type="text" id="appAge" placeholder="e.g. 3+ or 12+"></div>
+            </div>
+            <div class="input-group"><label>Description</label><textarea id="appDesc" rows="3" placeholder="Write about the app..."></textarea></div>
+            
+            <button id="submitAppBtn" class="btn btn-primary" style="margin-top: 10px;">Save to Store</button>
+            <button id="closeUploadModalBtn" class="btn btn-outline">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Edit App Modal -->
+    <div id="editModal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 style="margin-top: 0; text-align: center; color: var(--text-dark);">Edit App Info</h3>
+            <div class="input-group"><label>App Name</label><input type="text" id="editAppName"></div>
+            <div class="input-group">
+                <label>Update App Icon (Optional)</label>
+                <div style="font-size: 11px; color: #777; margin-bottom: 5px;">Leave empty to keep current icon</div>
+                <input type="file" id="editAppIconFile" accept="image/*" style="padding: 8px;">
+            </div>
+            <div class="input-group"><label>MediaFire Direct Link (APK)</label><input type="url" id="editAppLink"></div>
+            <div style="display: flex; gap: 10px;">
+                <div class="input-group" style="flex: 1;"><label>App Size</label><input type="text" id="editAppSize"></div>
+                <div class="input-group" style="flex: 1;"><label>Age Limit</label><input type="text" id="editAppAge"></div>
+            </div>
+            <div class="input-group"><label>Description</label><textarea id="editAppDesc" rows="3"></textarea></div>
+            
+            <button id="saveEditBtn" class="btn btn-primary" style="margin-top: 10px;">Update App</button>
+            <button id="closeEditModalBtn" class="btn btn-outline">Cancel</button>
+        </div>
+    </div>
+
+    <!-- App Details Page -->
+    <div id="app-details-page">
+        <div class="details-header"><i class="fa-solid fa-arrow-left back-btn" id="close-details-btn"></i><h3 style="margin: 0; font-size: 18px;">App Details</h3></div>
+        <div class="details-top">
+            <img id="detail-icon" class="details-icon" src="" alt="App Icon">
+            <div class="details-title"><h2 id="detail-name">App Name</h2><p>Nexus Developer</p></div>
+        </div>
+        <div class="stats-row">
+            <div class="stat-box"><strong id="detail-rating">0.0 <i class="fa-solid fa-star" style="color: #F59E0B; font-size: 12px;"></i></strong><span>Rating</span></div>
+            <div class="stat-box"><strong id="detail-downloads">0</strong><span>Downloads</span></div>
+            <div class="stat-box"><strong id="detail-age">3+</strong><span>Age</span></div>
+            <div class="stat-box"><strong id="detail-size">0 MB</strong><span>Size</span></div>
+        </div>
+        <div class="download-btn-container"><button class="btn-download-main" id="start-download-btn"><i class="fa-solid fa-download"></i> Install</button></div>
+        
+        <div style="padding: 0 20px;">
+            <h4 style="margin-bottom: 5px;">About this app</h4>
+            <p id="detail-desc" style="color: var(--text-light); font-size: 14px; line-height: 1.5; margin-top: 0;">Description goes here.</p>
+        </div>
+
+        <div class="review-section">
+            <h4 style="margin-top: 0;">Rate this app</h4>
+            <div class="star-rating" id="star-rating-container" style="margin-bottom: 15px;">
+                <i class="fa-solid fa-star" data-val="1"></i><i class="fa-solid fa-star" data-val="2"></i>
+                <i class="fa-solid fa-star" data-val="3"></i><i class="fa-solid fa-star" data-val="4"></i><i class="fa-solid fa-star" data-val="5"></i>
+            </div>
+            <div class="input-group"><textarea id="reviewText" rows="3" placeholder="Write a review..."></textarea></div>
+            <button id="submitReviewBtn" class="btn btn-outline" style="width: auto; padding: 8px 20px; font-size: 13px;">Post Review</button>
+            <h4 style="margin-top: 25px; border-bottom: 1px solid #f3f4f6; padding-bottom: 5px;">User Reviews</h4>
+            <div id="reviewsListContainer"></div>
+        </div>
+    </div>
+
+    <!-- Download Toast -->
+    <div id="download-toast"><div class="spinner"></div><span>Starting download...</span></div>
+
+    <!-- Bottom Nav -->
+    <nav class="bottom-nav">
+        <div class="nav-item active" data-target="home"><i class="fa-solid fa-house"></i>Home</div>
+        <div class="nav-item" data-target="explore"><i class="fa-solid fa-compass"></i>Explore</div>
+        <div class="nav-item" data-target="payment"><i class="fa-solid fa-credit-card"></i>Payment</div>
+        <div class="nav-item" data-target="profile"><i class="fa-solid fa-circle-user"></i>Profile</div>
+    </nav>
+
+    <!-- Firebase Scripts (No Changes Made Here) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, GoogleAuthProvider, signInWithRedirect } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot, addDoc, doc, updateDoc, increment, query, orderBy } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+        // Splash Screen
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                const splash = document.getElementById('splash-screen');
+                splash.classList.add('splash-fade-out');
+                setTimeout(() => { splash.style.display = 'none'; }, 600);
+            }, 1500);
+        });
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAwbsVQeYkEEzuKUbVpdw9MKjL5vEL2hto",
+            authDomain: "my-store-e43c0.firebaseapp.com",
+            projectId: "my-store-e43c0",
+            storageBucket: "my-store-e43c0.firebasestorage.app",
+            messagingSenderId: "803987671637",
+            appId: "1:803987671637:web:6581f74118bc05d276a2dc"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const googleProvider = new GoogleAuthProvider();
+
+        let currentUserEmail = null;
+        let currentAppId = null;
+        let selectedRating = 0;
+        let currentDownloadLink = "";
+        let allAppsData = [];
+
+        // Navigation
+        const navItems = document.querySelectorAll('.nav-item');
+        const tabPanes = document.querySelectorAll('.tab-pane');
+        navItems.forEach(item => {
+            item.addEventListener('click', () => {
+                navItems.forEach(nav => nav.classList.remove('active'));
+                tabPanes.forEach(tab => tab.classList.remove('active'));
+                item.classList.add('active');
+                document.getElementById(item.getAttribute('data-target')).classList.add('active');
+            });
+        });
+
+        // Auth
+        document.getElementById('loginBtn').addEventListener('click', () => {
+            const e = document.getElementById('email').value, p = document.getElementById('password').value;
+            if(e && p) signInWithEmailAndPassword(auth, e, p).catch(err => alert("Login Failed!"));
+        });
+        document.getElementById('signupBtn').addEventListener('click', () => {
+            const e = document.getElementById('email').value, p = document.getElementById('password').value;
+            if(e && p) createUserWithEmailAndPassword(auth, e, p).then(() => alert("Account Created!")).catch(err => alert(err.message));
+        });
+        document.getElementById('googleLoginBtn').addEventListener('click', () => signInWithRedirect(auth, googleProvider));
+        document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                document.getElementById('auth-section').style.display = 'none';
+                document.getElementById('dashboard-section').style.display = 'block';
+                currentUserEmail = user.email; 
+                document.getElementById('user-email-display').innerText = user.displayName || user.email;
+                renderMyApps(); 
+            } else {
+                document.getElementById('auth-section').style.display = 'block';
+                document.getElementById('dashboard-section').style.display = 'none';
+                currentUserEmail = null;
+                document.getElementById('my-apps-container').innerHTML = '';
+            }
+        });
+
+        // App Loading
+        const appGrid = document.getElementById('main-app-grid');
+
+        onSnapshot(collection(db, "store_apps"), (snapshot) => {
+            appGrid.innerHTML = ''; 
+            allAppsData = [];
+            snapshot.forEach((doc) => {
+                const data = doc.data();
+                const appObj = {
+                    id: doc.id,
+                    appName: data.appName || "Unknown",
+                    appIcon: data.appIcon || "https://cdn-icons-png.flaticon.com/512/2905/2905204.png",
+                    downloadLink: data.downloadLink || "#",
+                    size: data.size || "15 MB",
+                    age: data.age || "3+",
+                    description: data.description || "No description provided.",
+                    downloads: data.downloads || 0,
+                    ratingSum: data.ratingSum || 0,
+                    ratingCount: data.ratingCount || 0,
+                    uploader: data.uploader || "unknown" 
+                };
+                allAppsData.push(appObj);
+                createAppCard(appObj);
+            });
+            if(allAppsData.length === 0) appGrid.innerHTML = '<p style="grid-column: span 3; text-align:center; color:#888;">No apps available</p>';
+            renderMyApps(); 
+        });
+
+        function createAppCard(appData) {
+            const card = document.createElement('div');
+            card.className = 'app-card';
+            card.innerHTML = `<img src="${appData.appIcon}" class="app-icon" alt="icon" onerror="this.onerror=null; this.src='https://cdn-icons-png.flaticon.com/512/2905/2905204.png';">
+                              <div class="app-name">${appData.appName}</div>
+                              <div class="app-size">${appData.size}</div>`;
+            
+            // --- Buffering Animation logic added here ---
+            card.addEventListener('click', () => {
+                const loader = document.getElementById('app-transition-loader');
+                loader.classList.add('active'); // লোডার দেখাবে
+                
+                setTimeout(() => {
+                    loader.classList.remove('active'); // 0.8 সেকেন্ড পর লোডার বন্ধ হবে
+                    openAppDetails(appData); // তারপর অ্যাপ ডিটেইলস খুলবে
+                }, 800);
+            });
+            appGrid.appendChild(card);
+        }
+
+        function renderMyApps() {
+            const container = document.getElementById('my-apps-container');
+            if(!currentUserEmail) return;
+            const myApps = allAppsData.filter(app => app.uploader === currentUserEmail);
+            container.innerHTML = '';
+            
+            if(myApps.length === 0) {
+                container.innerHTML = '<p style="color:#777; font-size: 13px; text-align: center;">You have not uploaded any apps yet.</p>';
+                return;
+            }
+
+            myApps.forEach(app => {
+                const div = document.createElement('div');
+                div.style = "display: flex; align-items: center; justify-content: space-between; background: #f9f9f9; padding: 12px; border-radius: 10px; border-left: 4px solid var(--primary-color); box-shadow: 0 1px 3px rgba(0,0,0,0.05);";
+                div.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <img src="${app.appIcon}" style="width: 45px; height: 45px; border-radius: 10px; object-fit: cover;">
+                        <div>
+                            <div style="font-weight: bold; font-size: 14px; color: var(--text-dark);">${app.appName}</div>
+                            <div style="font-size: 11px; color: #777;">${app.downloads} Downloads</div>
+                        </div>
+                    </div>
+                    <button class="btn-outline edit-app-btn" style="width: auto; padding: 6px 14px; font-size: 12px; margin: 0; border-radius: 8px;" data-id="${app.id}">
+                        <i class="fa-solid fa-pen"></i> Edit
+                    </button>
+                `;
+                container.appendChild(div);
+            });
+
+            document.querySelectorAll('.edit-app-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    openEditModal(e.currentTarget.getAttribute('data-id'));
+                });
+            });
+        }
+
+        // --- Search Result click with buffering ---
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            const res = document.getElementById('search-results');
+            res.innerHTML = '';
+            if (query.length > 0) {
+                const filtered = allAppsData.filter(app => app.appName.toLowerCase().includes(query));
+                filtered.forEach(app => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `<i class="fa-solid fa-magnifying-glass" style="color: var(--primary-color); margin-right: 15px;"></i> <b>${app.appName}</b>`;
+                    li.addEventListener('click', () => {
+                        const loader = document.getElementById('app-transition-loader');
+                        loader.classList.add('active');
+                        setTimeout(() => {
+                            loader.classList.remove('active');
+                            openAppDetails(app);
+                        }, 800);
+                    });
+                    res.appendChild(li);
+                });
+            }
+        });
+
+        // Other Modal logic remains the same...
+        document.getElementById('openUploadBtn').addEventListener('click', () => document.getElementById('uploadModal').style.display = 'flex');
+        document.getElementById('closeUploadModalBtn').addEventListener('click', () => document.getElementById('uploadModal').style.display = 'none');
+        document.getElementById('submitAppBtn').addEventListener('click', async () => {
+            // ... (keeping previous functionality exact) ...
+            const name = document.getElementById('appName').value;
+            const iconFile = document.getElementById('appIconFile').files[0];
+            const link = document.getElementById('appLink').value;
+            const size = document.getElementById('appSize').value || "20 MB";
+            const age = document.getElementById('appAge').value || "3+";
+            const desc = document.getElementById('appDesc').value || "No description provided.";
+            
+            if(!name || !iconFile || !link) return alert("Please fill App Name, select an Icon image, and enter MediaFire Link!");
+            if(!currentUserEmail) return alert("Error: User not logged in!");
+
+            const btn = document.getElementById('submitAppBtn');
+            btn.innerText = "Uploading Image..."; btn.disabled = true;
+
+            try {
+                const formData = new FormData();
+                formData.append('file', iconFile);
+                formData.append('upload_preset', 'ml_default'); 
+                formData.append('cloud_name', 'jpkp0bd0');
+
+                const cloudRes = await fetch('https://api.cloudinary.com/v1_1/jpkp0bd0/image/upload', { method: 'POST', body: formData });
+                const cloudData = await cloudRes.json();
+                if(!cloudData.secure_url) throw new Error("Image upload failed.");
+                
+                const uploadedImageUrl = cloudData.secure_url;
+                btn.innerText = "Saving to Database...";
+
+                await addDoc(collection(db, "store_apps"), { 
+                    appName: name, 
+                    appIcon: uploadedImageUrl, 
+                    downloadLink: link, 
+                    size: size, 
+                    age: age,
+                    description: desc,
+                    downloads: 0, ratingSum: 0, ratingCount: 0,
+                    uploader: currentUserEmail
+                });
+                
+                alert("App uploaded successfully!");
+                document.getElementById('uploadModal').style.display = 'none';
+                
+                document.getElementById('appName').value = ''; document.getElementById('appIconFile').value = '';
+                document.getElementById('appLink').value = ''; document.getElementById('appSize').value = '';
+                document.getElementById('appAge').value = ''; document.getElementById('appDesc').value = '';
+
+            } catch (error) { alert("Error: " + error.message); } 
+            finally { btn.innerText = "Save to Store"; btn.disabled = false; }
+        });
+
+        let currentEditAppId = null;
+        let currentEditAppIconUrl = "";
+
+        function openEditModal(appId) {
+            const app = allAppsData.find(a => a.id === appId);
+            if(!app) return;
+            currentEditAppId = app.id;
+            currentEditAppIconUrl = app.appIcon; 
+
+            document.getElementById('editAppName').value = app.appName;
+            document.getElementById('editAppIconFile').value = ''; 
+            document.getElementById('editAppLink').value = app.downloadLink;
+            document.getElementById('editAppSize').value = app.size;
+            document.getElementById('editAppAge').value = app.age;
+            document.getElementById('editAppDesc').value = app.description;
+
+            document.getElementById('editModal').style.display = 'flex';
+        }
+
+        document.getElementById('closeEditModalBtn').addEventListener('click', () => document.getElementById('editModal').style.display = 'none');
+
+        document.getElementById('saveEditBtn').addEventListener('click', async () => {
+            const name = document.getElementById('editAppName').value;
+            const link = document.getElementById('editAppLink').value;
+            const size = document.getElementById('editAppSize').value;
+            const age = document.getElementById('editAppAge').value;
+            const desc = document.getElementById('editAppDesc').value;
+            const newIconFile = document.getElementById('editAppIconFile').files[0];
+
+            if(!name || !link) return alert("App Name and Download Link are required!");
+
+            const btn = document.getElementById('saveEditBtn');
+            btn.innerText = "Updating..."; btn.disabled = true;
+
+            try {
+                let finalIconUrl = currentEditAppIconUrl;
+
+                if (newIconFile) {
+                    btn.innerText = "Uploading New Icon...";
+                    const formData = new FormData();
+                    formData.append('file', newIconFile);
+                    formData.append('upload_preset', 'ml_default'); 
+                    formData.append('cloud_name', 'jpkp0bd0');
+
+                    const cloudRes = await fetch('https://api.cloudinary.com/v1_1/jpkp0bd0/image/upload', { method: 'POST', body: formData });
+                    const cloudData = await cloudRes.json();
+                    if(cloudData.secure_url) {
+                        finalIconUrl = cloudData.secure_url;
+                    } else {
+                        throw new Error("Failed to upload new icon.");
+                    }
+                }
+
+                btn.innerText = "Saving Changes...";
+                await updateDoc(doc(db, "store_apps", currentEditAppId), {
+                    appName: name,
+                    appIcon: finalIconUrl,
+                    downloadLink: link,
+                    size: size,
+                    age: age,
+                    description: desc
+                });
+
+                alert("App updated successfully!");
+                document.getElementById('editModal').style.display = 'none';
+
+            } catch (error) {
+                alert("Error updating app: " + error.message);
+            } finally {
+                btn.innerText = "Update App"; btn.disabled = false;
+            }
+        });
+
+        let unsubscribeReviews = null;
+        
+        function openAppDetails(appData) {
+            currentAppId = appData.id;
+            currentDownloadLink = appData.downloadLink;
+            
+            document.getElementById('detail-name').innerText = appData.appName;
+            const detailIcon = document.getElementById('detail-icon');
+            detailIcon.src = appData.appIcon;
+            detailIcon.onerror = function() { this.onerror = null; this.src = 'https://cdn-icons-png.flaticon.com/512/2905/2905204.png'; };
+            
+            document.getElementById('detail-size').innerText = appData.size;
+            document.getElementById('detail-age').innerText = appData.age;
+            document.getElementById('detail-desc').innerText = appData.description;
+            
+            let dCount = appData.downloads;
+            document.getElementById('detail-downloads').innerText = dCount > 1000 ? (dCount/1000).toFixed(1)+'K+' : dCount;
+            
+            let avg = appData.ratingCount > 0 ? (appData.ratingSum / appData.ratingCount).toFixed(1) : "0.0";
+            document.getElementById('detail-rating').innerHTML = `${avg} <i class="fa-solid fa-star" style="color: #F59E0B; font-size: 12px;"></i>`;
+            
+            selectedRating = 0;
+            document.querySelectorAll('.star-rating i').forEach(s => s.classList.remove('active'));
+            document.getElementById('reviewText').value = '';
+
+            if(unsubscribeReviews) unsubscribeReviews();
+            const q = query(collection(db, `store_apps/${currentAppId}/reviews`), orderBy("time", "desc"));
+            unsubscribeReviews = onSnapshot(q, (snap) => {
+                const rContainer = document.getElementById('reviewsListContainer');
+                rContainer.innerHTML = '';
+                snap.forEach(doc => {
+                    const data = doc.data();
+                    let starsHtml = '';
+                    for(let i=0; i<5; i++) { starsHtml += `<i class="fa-solid fa-star" style="color: ${i < data.rating ? '#F59E0B' : '#e5e7eb'}; font-size:10px;"></i>`; }
+                    rContainer.innerHTML += `<div class="review-card"><div class="review-user"><i class="fa-solid fa-circle-user" style="color:#aaa;"></i> ${data.user}</div><div style="margin-bottom: 5px;">${starsHtml}</div><p class="review-text">${data.review}</p></div>`;
+                });
+                if(snap.empty) rContainer.innerHTML = '<p style="color:#9ca3af; font-size:13px;">No reviews yet. Be the first to review!</p>';
+            });
+
+            document.getElementById('app-details-page').classList.add('show');
+        }
+
+        document.getElementById('close-details-btn').addEventListener('click', () => document.getElementById('app-details-page').classList.remove('show'));
+
+        document.getElementById('start-download-btn').addEventListener('click', async () => {
+            if(currentDownloadLink === "#") return alert("No download file attached.");
+            document.getElementById('download-toast').classList.add('show');
+            try { await updateDoc(doc(db, "store_apps", currentAppId), { downloads: increment(1) }); } catch(e) {}
+            setTimeout(() => { document.getElementById('download-toast').classList.remove('show'); window.open(currentDownloadLink, '_blank'); }, 2000);
+        });
+
+        // Rating System
+        const stars = document.querySelectorAll('.star-rating i');
+        stars.forEach(star => {
+            star.addEventListener('click', (e) => {
+                selectedRating = parseInt(e.target.getAttribute('data-val'));
+                stars.forEach(s => { s.classList[parseInt(s.getAttribute('data-val')) <= selectedRating ? 'add' : 'remove']('active'); });
+            });
+        });
+
+        document.getElementById('submitReviewBtn').addEventListener('click', async () => {
+            if(!currentUserEmail) return alert("You must be logged in to post a review!");
+            if(selectedRating === 0) return alert("Please select a star rating!");
+            const txt = document.getElementById('reviewText').value;
+            const btn = document.getElementById('submitReviewBtn');
+            btn.innerText = "Posting..."; btn.disabled = true;
+            try {
+                await addDoc(collection(db, `store_apps/${currentAppId}/reviews`), { rating: selectedRating, review: txt, user: currentUserEmail.split('@')[0], time: Date.now() });
+                await updateDoc(doc(db, "store_apps", currentAppId), { ratingSum: increment(selectedRating), ratingCount: increment(1) });
+                document.getElementById('reviewText').value = '';
+            } catch(e) { alert("Error: " + e.message); } finally { btn.innerText = "Post Review"; btn.disabled = false; }
+        });
+    </script>
+</body>
+</html>
