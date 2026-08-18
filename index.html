@@ -858,9 +858,17 @@
             
             const btn = this;
             
-            // যদি আগে থেকেই ডাউনলোড হয়ে থাকে, তবে ইন্সটল করার নির্দেশিকা দেখাবে
+                        // যদি আগে থেকেই ডাউনলোড হয়ে থাকে, তবে ইন্সটল করার নির্দেশিকা দেখাবে
             if (btn.getAttribute('data-state') === 'installed') {
-                alert("ফাইলটি আপনার নোটিফিকেশন বারে ডাউনলোড হচ্ছে। দয়া করে উপর থেকে নোটিফিকেশন প্যানেল নামিয়ে ফাইলটিতে ক্লিক করে ইন্সটল করুন!");
+                // Alert এর বদলে কাস্টম টোস্ট মেসেজ দেখানো হচ্ছে
+                const toast = document.getElementById('download-toast');
+                toast.innerHTML = '<i class="fa-solid fa-bell" style="color:var(--accent-color);"></i> <span>নোটিফিকেশন প্যানেল নামিয়ে অ্যাপটি ইনস্টল করুন!</span>';
+                toast.classList.add('show');
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                    toast.innerHTML = '<div class="spinner"></div><span>Starting download...</span>'; // রিসেট
+                }, 3500);
+
                 // ব্যাকআপ হিসেবে আবার ডাউনলোড ট্রিগার করা
                 window.location.href = currentDownloadLink;
                 return;
