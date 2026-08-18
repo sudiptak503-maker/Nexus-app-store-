@@ -187,11 +187,10 @@
             <svg viewBox="0 0 24 24"><use href="#icon-nexus"></use></svg>
             <h1>Nexus</h1>
         </div>
-        <!-- Notification Bell Updated with ID -->
         <i id="notification-bell" class="fa-solid fa-bell" style="color: var(--accent-color); font-size: 22px; cursor: pointer;"></i>
     </header>
 
-    <!-- Notification Panel added -->
+    <!-- Notification Panel -->
     <div id="notification-panel">
         <h4 style="margin-top:0; color:var(--primary-color); border-bottom:1px solid #f3f4f6; padding-bottom:10px;">Notifications</h4>
         <div id="notification-content">
@@ -230,7 +229,7 @@
         <!-- Explore -->
         <div id="explore" class="tab-pane"><input type="text" id="searchInput" class="search-box" placeholder="Search apps & games..."><ul id="search-results"></ul></div>
         
-        <!-- Payment (Nexus Points) -->
+        <!-- Payment -->
         <div id="payment" class="tab-pane">
             <div id="payment-login-msg" style="text-align: center; padding: 40px; color: var(--text-light);">
                 <i class="fa-solid fa-lock" style="font-size: 40px; margin-bottom: 10px;"></i>
@@ -289,7 +288,7 @@
         </div>
     </div>
 
-    <!-- Upload Modal (GitHub Link Updated) -->
+    <!-- Upload Modal -->
     <div id="uploadModal" class="modal-overlay">
         <div class="modal-content">
             <h3 style="margin-top: 0; text-align: center; color: var(--text-dark);">Upload App</h3>
@@ -308,7 +307,6 @@
             </div>
 
             <div class="input-group"><label>App Icon Image</label><input type="file" id="appIconFile" accept="image/*" style="padding: 8px;"></div>
-            <!-- MediaFire replaced with GitHub -->
             <div class="input-group"><label>GitHub Direct Link (APK)</label><input type="url" id="appLink" placeholder="https://github.com/.../app.apk"></div>
             <div style="display: flex; gap: 10px;">
                 <div class="input-group" style="flex: 1;"><label>App Size</label><input type="text" id="appSize" placeholder="e.g. 20 MB"></div>
@@ -321,7 +319,7 @@
         </div>
     </div>
 
-    <!-- Edit App Modal (GitHub Link Updated) -->
+    <!-- Edit App Modal -->
     <div id="editModal" class="modal-overlay">
         <div class="modal-content">
             <h3 style="margin-top: 0; text-align: center; color: var(--text-dark);">Edit App Info</h3>
@@ -344,7 +342,6 @@
                 <div style="font-size: 11px; color: #777; margin-bottom: 5px;">Leave empty to keep current icon</div>
                 <input type="file" id="editAppIconFile" accept="image/*" style="padding: 8px;">
             </div>
-            <!-- MediaFire replaced with GitHub -->
             <div class="input-group"><label>GitHub Direct Link (APK)</label><input type="url" id="editAppLink"></div>
             <div style="display: flex; gap: 10px;">
                 <div class="input-group" style="flex: 1;"><label>App Size</label><input type="text" id="editAppSize"></div>
@@ -371,7 +368,7 @@
             <div class="stat-box"><strong id="detail-size">0 MB</strong><span>Size</span></div>
         </div>
         
-        <!-- Download Container Updated with Progress Bar -->
+        <!-- Download Container -->
         <div class="download-btn-container">
             <button class="btn-download-main" id="start-download-btn"><i class="fa-solid fa-download"></i> Download</button>
             
@@ -456,7 +453,6 @@
             panel.style.display = panel.style.display === 'none' || panel.style.display === '' ? 'block' : 'none';
         });
 
-        // Hide notification panel when clicking outside
         document.addEventListener('click', (e) => {
             const panel = document.getElementById('notification-panel');
             const bell = document.getElementById('notification-bell');
@@ -568,7 +564,7 @@
             updatePaymentDashboard();
         });
 
-        // --- PAYMENT & POINTS LOGIC ---
+        // PAYMENT & POINTS LOGIC
         function updatePaymentDashboard() {
             if (!currentUserEmail) {
                 document.getElementById('payment-content').style.display = 'none';
@@ -578,12 +574,10 @@
             document.getElementById('payment-content').style.display = 'block';
             document.getElementById('payment-login-msg').style.display = 'none';
 
-            // Calculate total downloads for this user's apps
             const myApps = allAppsData.filter(app => app.uploader === currentUserEmail);
             let totalDownloads = 0;
             myApps.forEach(app => { totalDownloads += (app.downloads || 0); });
 
-            // 1 download = 100 points. 1000 points = 10 TK.
             const totalPoints = totalDownloads * 100;
             const totalMoney = (totalPoints / 1000) * 10;
 
@@ -625,7 +619,6 @@
             }
         });
 
-        // Remaining functions (renderApps, displayAppGrid, etc.)
         function renderApps() {
             document.getElementById('section-title').style.display = 'none';
             if (currentTopTab === 'category') {
@@ -834,9 +827,11 @@
             document.querySelectorAll('.star-rating i').forEach(s => s.classList.remove('active'));
             document.getElementById('reviewText').value = '';
             
-            // ডাউনলোড বাটন ও প্রোগ্রেস বার রিসেট করা
-            document.getElementById('start-download-btn').style.display = 'flex';
-            document.getElementById('start-download-btn').innerHTML = '<i class="fa-solid fa-download"></i> Download';
+            // বাটন ও প্রোগ্রেস বার রিসেট করা
+            const btn = document.getElementById('start-download-btn');
+            btn.style.display = 'flex';
+            btn.innerHTML = '<i class="fa-solid fa-download"></i> Download';
+            btn.removeAttribute('data-state');
             document.getElementById('download-progress-container').style.display = 'none';
 
             if(unsubscribeReviews) unsubscribeReviews();
@@ -857,11 +852,20 @@
 
         document.getElementById('close-details-btn').addEventListener('click', () => document.getElementById('app-details-page').classList.remove('show'));
         
-        // --- Updated Progress Bar Logic ---
-        document.getElementById('start-download-btn').addEventListener('click', async () => {
+        // --- SIMULATED DOWNLOAD PROGRESS LOGIC ---
+        document.getElementById('start-download-btn').addEventListener('click', async function() {
             if(currentDownloadLink === "#") return alert("No download file attached.");
             
-            const btn = document.getElementById('start-download-btn');
+            const btn = this;
+            
+            // যদি আগে থেকেই ডাউনলোড হয়ে থাকে, তবে ইন্সটল করার নির্দেশিকা দেখাবে
+            if (btn.getAttribute('data-state') === 'installed') {
+                alert("ফাইলটি আপনার নোটিফিকেশন বারে ডাউনলোড হচ্ছে। দয়া করে উপর থেকে নোটিফিকেশন প্যানেল নামিয়ে ফাইলটিতে ক্লিক করে ইন্সটল করুন!");
+                // ব্যাকআপ হিসেবে আবার ডাউনলোড ট্রিগার করা
+                window.location.href = currentDownloadLink;
+                return;
+            }
+
             const progressContainer = document.getElementById('download-progress-container');
             const progressBar = document.getElementById('download-progress-bar');
             const progressText = document.getElementById('download-percentage');
@@ -877,7 +881,7 @@
 
             let progress = 0;
             const downloadInterval = setInterval(() => {
-                // ডাউনলোডের স্পিড (১ থেকে ৫ এর মধ্যে র‍্যান্ডম)
+                // ডাউনলোডের স্পিড সিমুলেশন (১ থেকে ৫ এর মধ্যে র‍্যান্ডম)
                 progress += Math.floor(Math.random() * 5) + 1;
                 
                 if(progress >= 100) {
@@ -886,11 +890,14 @@
                     progressBar.style.width = progress + '%';
                     progressText.innerText = progress + '%';
                     
-                    // ১০০% হওয়ার পর ইনস্টল বাটন দেখানো এবং ডাউনলোড শুরু করা
+                    // ১০০% হওয়ার পর
                     setTimeout(() => {
                         progressContainer.style.display = 'none';
                         btn.style.display = 'flex';
                         btn.innerHTML = '<i class="fa-solid fa-box-open"></i> Install App';
+                        btn.setAttribute('data-state', 'installed'); // স্ট্যাটাস পরিবর্তন করা হলো
+                        
+                        alert("ডাউনলোড শুরু হয়েছে! নোটিফিকেশন বার চেক করুন।");
                         
                         // Sketchware-এ ডাউনলোড ট্রিগার হবে
                         window.location.href = currentDownloadLink;
