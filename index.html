@@ -149,6 +149,12 @@
         .nav-item { display: flex; flex-direction: column; align-items: center; color: #9ca3af; cursor: pointer; font-size: 11px; font-weight: 600; transition: color 0.2s; }
         .nav-item i { font-size: 22px; margin-bottom: 5px; }
         .nav-item.active { color: var(--primary-color); }
+        
+        /* Notification Panel Styling */
+        #notification-panel { display: none; position: fixed; top: 65px; right: 20px; width: 300px; background: #fff; box-shadow: 0 10px 25px rgba(0,0,0,0.15); border-radius: 12px; z-index: 1000; padding: 15px; border: 1px solid #e5e7eb; animation: fadeIn 0.3s ease; }
+        .notif-item { padding: 10px; border-bottom: 1px solid #f3f4f6; font-size: 13px; color: var(--text-dark); }
+        .notif-item:last-child { border-bottom: none; }
+        .notif-item i { color: var(--primary-color); margin-right: 8px; }
     </style>
 </head>
 <body>
@@ -181,8 +187,18 @@
             <svg viewBox="0 0 24 24"><use href="#icon-nexus"></use></svg>
             <h1>Nexus</h1>
         </div>
-        <i class="fa-solid fa-bell" style="color: var(--accent-color); font-size: 22px;"></i>
+        <!-- Notification Bell Updated with ID -->
+        <i id="notification-bell" class="fa-solid fa-bell" style="color: var(--accent-color); font-size: 22px; cursor: pointer;"></i>
     </header>
+
+    <!-- Notification Panel added -->
+    <div id="notification-panel">
+        <h4 style="margin-top:0; color:var(--primary-color); border-bottom:1px solid #f3f4f6; padding-bottom:10px;">Notifications</h4>
+        <div id="notification-content">
+            <div class="notif-item"><i class="fa-solid fa-gift"></i> Welcome to Nexus Store!</div>
+            <div class="notif-item"><i class="fa-solid fa-cloud-arrow-up"></i> Upload your first app and earn points.</div>
+        </div>
+    </div>
 
     <!-- Top Navigation Tabs -->
     <div class="top-tabs-container" id="home-tabs">
@@ -273,13 +289,12 @@
         </div>
     </div>
 
-    <!-- Upload Modal -->
+    <!-- Upload Modal (GitHub Link Updated) -->
     <div id="uploadModal" class="modal-overlay">
         <div class="modal-content">
             <h3 style="margin-top: 0; text-align: center; color: var(--text-dark);">Upload App</h3>
             <div class="input-group"><label>App Name</label><input type="text" id="appName" placeholder="e.g. Action Pro"></div>
             
-            <!-- Category Required Field -->
             <div class="input-group">
                 <label>Category *</label>
                 <select id="appCategory" required>
@@ -293,7 +308,8 @@
             </div>
 
             <div class="input-group"><label>App Icon Image</label><input type="file" id="appIconFile" accept="image/*" style="padding: 8px;"></div>
-            <div class="input-group"><label>MediaFire Direct Link (APK)</label><input type="url" id="appLink" placeholder="https://www.mediafire.com/file/..."></div>
+            <!-- MediaFire replaced with GitHub -->
+            <div class="input-group"><label>GitHub Direct Link (APK)</label><input type="url" id="appLink" placeholder="https://github.com/.../app.apk"></div>
             <div style="display: flex; gap: 10px;">
                 <div class="input-group" style="flex: 1;"><label>App Size</label><input type="text" id="appSize" placeholder="e.g. 20 MB"></div>
                 <div class="input-group" style="flex: 1;"><label>Age Limit</label><input type="text" id="appAge" placeholder="e.g. 3+ or 12+"></div>
@@ -305,13 +321,12 @@
         </div>
     </div>
 
-    <!-- Edit App Modal -->
+    <!-- Edit App Modal (GitHub Link Updated) -->
     <div id="editModal" class="modal-overlay">
         <div class="modal-content">
             <h3 style="margin-top: 0; text-align: center; color: var(--text-dark);">Edit App Info</h3>
             <div class="input-group"><label>App Name</label><input type="text" id="editAppName"></div>
             
-            <!-- Category Edit Field -->
             <div class="input-group">
                 <label>Category *</label>
                 <select id="editAppCategory" required>
@@ -329,7 +344,8 @@
                 <div style="font-size: 11px; color: #777; margin-bottom: 5px;">Leave empty to keep current icon</div>
                 <input type="file" id="editAppIconFile" accept="image/*" style="padding: 8px;">
             </div>
-            <div class="input-group"><label>MediaFire Direct Link (APK)</label><input type="url" id="editAppLink"></div>
+            <!-- MediaFire replaced with GitHub -->
+            <div class="input-group"><label>GitHub Direct Link (APK)</label><input type="url" id="editAppLink"></div>
             <div style="display: flex; gap: 10px;">
                 <div class="input-group" style="flex: 1;"><label>App Size</label><input type="text" id="editAppSize"></div>
                 <div class="input-group" style="flex: 1;"><label>Age Limit</label><input type="text" id="editAppAge"></div>
@@ -354,7 +370,21 @@
             <div class="stat-box"><strong id="detail-age">3+</strong><span>Age</span></div>
             <div class="stat-box"><strong id="detail-size">0 MB</strong><span>Size</span></div>
         </div>
-        <div class="download-btn-container"><button class="btn-download-main" id="start-download-btn"><i class="fa-solid fa-download"></i> Install</button></div>
+        
+        <!-- Download Container Updated with Progress Bar -->
+        <div class="download-btn-container">
+            <button class="btn-download-main" id="start-download-btn"><i class="fa-solid fa-download"></i> Download</button>
+            
+            <div id="download-progress-container" style="display:none; margin-top:15px;">
+                <div style="display:flex; justify-content:space-between; font-size:14px; margin-bottom:5px; color:var(--text-dark); font-weight:bold;">
+                    <span>Downloading...</span>
+                    <span id="download-percentage">0%</span>
+                </div>
+                <div style="width:100%; background:#e5e7eb; border-radius:10px; height:8px; overflow:hidden;">
+                    <div id="download-progress-bar" style="width:0%; background:var(--primary-color); height:100%; transition:width 0.2s;"></div>
+                </div>
+            </div>
+        </div>
         
         <div style="padding: 0 20px;">
             <h4 style="margin-bottom: 5px;">About this app</h4>
@@ -419,6 +449,21 @@
         let currentDownloadLink = "";
         let allAppsData = [];
         let currentTopTab = "foryou"; 
+
+        // Notification Bell Logic
+        document.getElementById('notification-bell').addEventListener('click', () => {
+            const panel = document.getElementById('notification-panel');
+            panel.style.display = panel.style.display === 'none' || panel.style.display === '' ? 'block' : 'none';
+        });
+
+        // Hide notification panel when clicking outside
+        document.addEventListener('click', (e) => {
+            const panel = document.getElementById('notification-panel');
+            const bell = document.getElementById('notification-bell');
+            if (e.target !== panel && e.target !== bell && !panel.contains(e.target)) {
+                panel.style.display = 'none';
+            }
+        });
 
         // Bottom Navigation
         const navItems = document.querySelectorAll('.nav-item');
@@ -683,7 +728,7 @@
             const age = document.getElementById('appAge').value || "3+";
             const desc = document.getElementById('appDesc').value || "No description provided.";
             
-            if(!name || !category || !iconFile || !link) return alert("Please fill App Name, select Category, select an Icon image, and enter MediaFire Link!");
+            if(!name || !category || !iconFile || !link) return alert("Please fill App Name, select Category, select an Icon image, and enter GitHub Link!");
             if(!currentUserEmail) return alert("Error: User not logged in!");
             const btn = document.getElementById('submitAppBtn');
             btn.innerText = "Uploading Image..."; btn.disabled = true;
@@ -788,6 +833,11 @@
             selectedRating = 0;
             document.querySelectorAll('.star-rating i').forEach(s => s.classList.remove('active'));
             document.getElementById('reviewText').value = '';
+            
+            // ডাউনলোড বাটন ও প্রোগ্রেস বার রিসেট করা
+            document.getElementById('start-download-btn').style.display = 'flex';
+            document.getElementById('start-download-btn').innerHTML = '<i class="fa-solid fa-download"></i> Download';
+            document.getElementById('download-progress-container').style.display = 'none';
 
             if(unsubscribeReviews) unsubscribeReviews();
             const q = query(collection(db, `store_apps/${currentAppId}/reviews`), orderBy("time", "desc"));
@@ -807,11 +857,49 @@
 
         document.getElementById('close-details-btn').addEventListener('click', () => document.getElementById('app-details-page').classList.remove('show'));
         
+        // --- Updated Progress Bar Logic ---
         document.getElementById('start-download-btn').addEventListener('click', async () => {
             if(currentDownloadLink === "#") return alert("No download file attached.");
-            document.getElementById('download-toast').classList.add('show');
+            
+            const btn = document.getElementById('start-download-btn');
+            const progressContainer = document.getElementById('download-progress-container');
+            const progressBar = document.getElementById('download-progress-bar');
+            const progressText = document.getElementById('download-percentage');
+
+            // বাটন লুকিয়ে প্রোগ্রেস বার চালু করা
+            btn.style.display = 'none'; 
+            progressContainer.style.display = 'block'; 
+            progressBar.style.width = '0%';
+            progressText.innerText = '0%';
+            
+            // ডেটাবেসে ডাউনলোডের সংখ্যা বাড়ানো
             try { await updateDoc(doc(db, "store_apps", currentAppId), { downloads: increment(1) }); } catch(e) {}
-            setTimeout(() => { document.getElementById('download-toast').classList.remove('show'); window.open(currentDownloadLink, '_blank'); }, 2000);
+
+            let progress = 0;
+            const downloadInterval = setInterval(() => {
+                // ডাউনলোডের স্পিড (১ থেকে ৫ এর মধ্যে র‍্যান্ডম)
+                progress += Math.floor(Math.random() * 5) + 1;
+                
+                if(progress >= 100) {
+                    progress = 100;
+                    clearInterval(downloadInterval);
+                    progressBar.style.width = progress + '%';
+                    progressText.innerText = progress + '%';
+                    
+                    // ১০০% হওয়ার পর ইনস্টল বাটন দেখানো এবং ডাউনলোড শুরু করা
+                    setTimeout(() => {
+                        progressContainer.style.display = 'none';
+                        btn.style.display = 'flex';
+                        btn.innerHTML = '<i class="fa-solid fa-box-open"></i> Install App';
+                        
+                        // Sketchware-এ ডাউনলোড ট্রিগার হবে
+                        window.location.href = currentDownloadLink;
+                    }, 800);
+                } else {
+                    progressBar.style.width = progress + '%';
+                    progressText.innerText = progress + '%';
+                }
+            }, 150);
         });
 
         const stars = document.querySelectorAll('.star-rating i');
